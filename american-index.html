@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The American Index — a card catalog oracle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Special+Elite&family=Lora:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#e9dfc9;
+    --paper-deep:#ddd0af;
+    --card:#faf3e3;
+    --ink:#221d16;
+    --ink-soft:#5a5142;
+    --stamp:#96291d;
+    --ledger:#3f4f3f;
+    --brass:#a7854c;
+    --rule: rgba(34,29,22,0.18);
+  }
+
+  *{box-sizing:border-box;}
+
+  html,body{
+    margin:0;
+    min-height:100%;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Lora', serif;
+  }
+
+  body{
+    background-image:
+      radial-gradient(ellipse at 20% -10%, rgba(255,255,255,0.35), transparent 45%),
+      radial-gradient(ellipse at 90% 110%, rgba(0,0,0,0.06), transparent 50%),
+      repeating-linear-gradient(90deg, rgba(34,29,22,0.015) 0 1px, transparent 1px 3px);
+    display:flex;
+    justify-content:center;
+    padding: 8vh 20px 10vh;
+  }
+
+  .console{
+    width:100%;
+    max-width:640px;
+  }
+
+  /* ---------- Header ---------- */
+  .eyebrow{
+    font-family:'Special Elite', monospace;
+    font-size:12.5px;
+    letter-spacing:0.32em;
+    color:var(--ledger);
+    text-align:center;
+    margin:0 0 10px;
+  }
+
+  h1{
+    font-family:'Cormorant Garamond', serif;
+    font-style:italic;
+    font-weight:600;
+    font-size:clamp(32px, 6vw, 46px);
+    text-align:center;
+    margin:0 0 18px;
+    line-height:1.1;
+  }
+
+  .intro{
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:15.5px;
+    line-height:1.65;
+    max-width:460px;
+    margin:0 auto 40px;
+  }
+
+  .intro em{ font-style:italic; color:var(--ink); }
+
+  /* ---------- Call slip (input) ---------- */
+  .slip{
+    background:var(--card);
+    border:1px solid var(--rule);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 14px 30px -18px rgba(34,29,22,0.5);
+    padding:26px 26px 22px;
+    position:relative;
+  }
+
+  .slip::before{
+    content:"";
+    position:absolute;
+    top:0; left:0; right:0;
+    height:5px;
+    background: linear-gradient(90deg, var(--stamp) 0 60%, transparent 60%);
+    opacity:0.85;
+  }
+
+  .slip-label{
+    font-family:'Special Elite', monospace;
+    font-size:11.5px;
+    letter-spacing:0.14em;
+    color:var(--ledger);
+    text-transform:uppercase;
+    display:block;
+    margin-bottom:10px;
+  }
+
+  form{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  input[type="text"]{
+    flex:1 1 260px;
+    background:transparent;
+    border:none;
+    border-bottom:1.5px dashed var(--rule);
+    font-family:'Lora', serif;
+    font-style:italic;
+    font-size:17px;
+    padding:6px 2px 10px;
+    color:var(--ink);
+    outline:none;
+  }
+
+  input[type="text"]::placeholder{
+    color:#9a8f78;
+    opacity:1;
+  }
+
+  input[type="text"]:focus{
+    border-bottom-color:var(--stamp);
+  }
+
+  button{
+    font-family:'Special Elite', monospace;
+    font-size:13px;
+    letter-spacing:0.08em;
+    background:var(--ink);
+    color:var(--card);
+    border:none;
+    padding:0 20px;
+    cursor:pointer;
+    transition: transform 0.15s ease, background 0.15s ease;
+    white-space:nowrap;
+  }
+
+  button:hover{ background:var(--stamp); }
+  button:active{ transform: translateY(1px); }
+  button:focus-visible{ outline:2px solid var(--stamp); outline-offset:3px; }
+
+  /* ---------- Searching state ---------- */
+  .searching{
+    margin-top:26px;
+    text-align:center;
+    font-family:'Special Elite', monospace;
+    font-size:13px;
+    letter-spacing:0.1em;
+    color:var(--ink-soft);
+    display:none;
+    min-height:20px;
+  }
+  .searching.active{ display:block; }
+
+  /* ---------- Result ---------- */
+  #result{ margin-top:34px; display:none; }
+  #result.active{ display:block; animation: rise 0.5s ease; }
+
+  @keyframes rise{
+    from{ opacity:0; transform: translateY(10px) rotate(0.4deg); }
+    to{ opacity:1; transform: translateY(0) rotate(0deg); }
+  }
+
+  .drawer-tab{
+    display:inline-block;
+    font-family:'Special Elite', monospace;
+    font-size:11px;
+    letter-spacing:0.12em;
+    color:var(--card);
+    background:var(--ledger);
+    padding:5px 12px 4px;
+    margin-left:22px;
+    position:relative;
+    top:1px;
+  }
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--rule);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 20px 40px -22px rgba(34,29,22,0.55);
+    padding:34px 30px 26px;
+    position:relative;
+    transform: rotate(-0.3deg);
+  }
+
+  .card::before{
+    content:"";
+    position:absolute;
+    top:26px; left:0; right:0;
+    height:1px;
+    background: var(--stamp);
+    opacity:0.55;
+  }
+
+  .card-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    font-family:'Special Elite', monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+    color:var(--ink-soft);
+    margin-bottom:26px;
+  }
+
+  .question-line{
+    font-family:'Special Elite', monospace;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin:0 0 20px;
+    line-height:1.5;
+  }
+  .question-line span{ color:var(--ink); }
+
+  blockquote{
+    margin:0 0 22px;
+    font-family:'Cormorant Garamond', serif;
+    font-size:clamp(22px, 4vw, 27px);
+    font-weight:500;
+    line-height:1.42;
+    color:var(--ink);
+  }
+
+  .attribution{
+    font-family:'Lora', serif;
+    font-style:italic;
+    font-size:14.5px;
+    color:var(--ink-soft);
+    text-align:right;
+    margin:0 0 24px;
+  }
+
+  .card-footer{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    border-top:1px dashed var(--rule);
+    padding-top:14px;
+    font-family:'Special Elite', monospace;
+    font-size:10.5px;
+    letter-spacing:0.05em;
+    color:var(--ink-soft);
+  }
+
+  .stamp{
+    position:absolute;
+    right:26px;
+    bottom:20px;
+    width:96px;
+    height:96px;
+    border:2.5px solid var(--stamp);
+    border-radius:50%;
+    color:var(--stamp);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    font-family:'Special Elite', monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    line-height:1.3;
+    transform: rotate(-14deg) scale(0.4);
+    opacity:0;
+    mix-blend-mode:multiply;
+  }
+
+  .stamp.pop{
+    animation: stamp-in 0.35s cubic-bezier(.2,1.6,.4,1) 0.55s forwards;
+  }
+
+  @keyframes stamp-in{
+    0%{ opacity:0; transform: rotate(-14deg) scale(2.2); }
+    60%{ opacity:0.9; transform: rotate(-14deg) scale(0.85); }
+    100%{ opacity:0.85; transform: rotate(-14deg) scale(1); }
+  }
+
+  .again-row{
+    margin-top:22px;
+    text-align:center;
+  }
+
+  .again-row button{
+    background:transparent;
+    color:var(--ink);
+    border:1px solid var(--ink);
+    padding:9px 20px;
+  }
+  .again-row button:hover{
+    background:var(--ink);
+    color:var(--card);
+  }
+
+  footer{
+    text-align:center;
+    margin-top:56px;
+    font-family:'Special Elite', monospace;
+    font-size:10.5px;
+    letter-spacing:0.08em;
+    color:var(--ink-soft);
+    opacity:0.75;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    #result.active, .stamp.pop{ animation:none !important; }
+    .stamp{ opacity:0.85; transform: rotate(-14deg) scale(1); }
+  }
+</style>
+</head>
+<body>
+<div class="console">
+
+  <p class="eyebrow">THE AMERICAN INDEX</p>
+  <h1>An Oracle of American Letters</h1>
+  <p class="intro">Ask a question. A drawer opens somewhere in the stacks, and a card comes back —
+    <em>a single sentence, drawn at random from American literature.</em>
+    It won't answer you. It never does. That's rather the point.</p>
+
+  <div class="slip">
+    <span class="slip-label">Call Slip — please state your inquiry</span>
+    <form id="ask-form">
+      <input type="text" id="question" placeholder="What do you want to know?" autocomplete="off">
+      <button type="submit">Draw a card →</button>
+    </form>
+  </div>
+
+  <p class="searching" id="searching">searching drawer …</p>
+
+  <div id="result">
+    <span class="drawer-tab" id="drawer-tab">A–B</span>
+    <div class="card">
+      <div class="card-top">
+        <span id="card-no">CARD NO. 000000</span>
+        <span id="card-date">DRAWN —</span>
+      </div>
+      <p class="question-line" id="question-line" style="display:none;">Q — <span id="question-echo"></span></p>
+      <blockquote id="quote-text"></blockquote>
+      <p class="attribution" id="quote-attr"></p>
+      <div class="card-footer">
+        <span id="call-number">CALL NO. —</span>
+        <span>AMERICAN INDEX · VOL. I</span>
+      </div>
+      <div class="stamp" id="stamp">CONSULTED</div>
+    </div>
+    <div class="again-row">
+      <button type="button" id="again-btn">Draw another card</button>
+    </div>
+  </div>
+
+  <footer>NOT ADVICE — JUST LITERATURE</footer>
+</div>
+
+<script>
+const QUOTES = [
+  { text: "Call me Ishmael.", author: "Herman Melville", work: "Moby-Dick", year: 1851 },
+  { text: "It is not down on any map; true places never are.", author: "Herman Melville", work: "Moby-Dick", year: 1851 },
+  { text: "I would prefer not to.", author: "Herman Melville", work: "Bartleby, the Scrivener", year: 1853 },
+  { text: "I went to the woods because I wished to live deliberately, to front only the essential facts of life.", author: "Henry David Thoreau", work: "Walden", year: 1854 },
+  { text: "The mass of men lead lives of quiet desperation.", author: "Henry David Thoreau", work: "Walden", year: 1854 },
+  { text: "Simplify, simplify.", author: "Henry David Thoreau", work: "Walden", year: 1854 },
+  { text: "I am large, I contain multitudes.", author: "Walt Whitman", work: "Song of Myself", year: 1855 },
+  { text: "I sound my barbaric yawp over the roofs of the world.", author: "Walt Whitman", work: "Song of Myself", year: 1855 },
+  { text: "Do I contradict myself? Very well then I contradict myself.", author: "Walt Whitman", work: "Song of Myself", year: 1855 },
+  { text: "All right, then, I'll go to hell.", author: "Mark Twain", work: "Adventures of Huckleberry Finn", year: 1884 },
+  { text: "It were not best that we should all think alike; it is difference of opinion that makes horse races.", author: "Mark Twain", work: "Pudd'nhead Wilson", year: 1894 },
+  { text: "We dream in our waking moments, and walk in our sleep.", author: "Nathaniel Hawthorne", work: "The Scarlet Letter", year: 1850 },
+  { text: "No man, for any considerable period, can wear one face to himself and another to the multitude, without finally getting bewildered as to which may be the true.", author: "Nathaniel Hawthorne", work: "The Scarlet Letter", year: 1850 },
+  { text: "True! nervous, very, very dreadfully nervous I had been and am.", author: "Edgar Allan Poe", work: "The Tell-Tale Heart", year: 1843 },
+  { text: "Quoth the Raven, 'Nevermore.'", author: "Edgar Allan Poe", work: "The Raven", year: 1845 },
+  { text: "To be great is to be misunderstood.", author: "Ralph Waldo Emerson", work: "Self-Reliance", year: 1841 },
+  { text: "A foolish consistency is the hobgoblin of little minds.", author: "Ralph Waldo Emerson", work: "Self-Reliance", year: 1841 },
+  { text: "I become a transparent eyeball.", author: "Ralph Waldo Emerson", work: "Nature", year: 1836 },
+  { text: "Because I could not stop for Death, He kindly stopped for me.", author: "Emily Dickinson", work: "Poems", year: 1890 },
+  { text: "Hope is the thing with feathers that perches in the soul.", author: "Emily Dickinson", work: "Poems", year: 1891 },
+  { text: "I am not afraid of storms, for I am learning how to sail my ship.", author: "Louisa May Alcott", work: "Little Women", year: 1868 },
+  { text: "Once you learn to read, you will be forever free.", author: "Frederick Douglass", work: "Narrative of the Life of Frederick Douglass", year: 1845 },
+  { text: "He had been to touch the great death, and found that, after all, it was but the great death.", author: "Stephen Crane", work: "The Red Badge of Courage", year: 1895 },
+  { text: "He was sounding the deeps of his nature, and of the parts of his nature that were deeper than he.", author: "Jack London", work: "The Call of the Wild", year: 1903 },
+  { text: "That is happiness, to be dissolved into something complete and great.", author: "Willa Cather", work: "My Ántonia", year: 1918 },
+  { text: "So we beat on, boats against the current, borne back ceaselessly into the past.", author: "F. Scott Fitzgerald", work: "The Great Gatsby", year: 1925 },
+  { text: "I hope she'll be a fool — that's the best thing a girl can be in this world, a beautiful little fool.", author: "F. Scott Fitzgerald", work: "The Great Gatsby", year: 1925 },
+  { text: "They use everything about the hog except the squeal.", author: "Upton Sinclair", work: "The Jungle", year: 1906 },
+  { text: "I've got out at last, in spite of you and Jane! And I've pulled off most of the paper, so you can't put me back!", author: "Charlotte Perkins Gilman", work: "The Yellow Wallpaper", year: 1892 },
+  { text: "Success is to be measured not so much by the position that one has reached in life as by the obstacles which he has overcome.", author: "Booker T. Washington", work: "Up from Slavery", year: 1901 },
+  { text: "It's a complex fate, being an American.", author: "Henry James", work: "Letter to Charles Eliot Norton", year: 1872 },
+  { text: "Death is a dignitary who when he comes announced is to be received with formal manifestations of respect.", author: "Ambrose Bierce", work: "An Occurrence at Owl Creek Bridge", year: 1890 },
+  { text: "He looked up at the sky; it was equally blue and clear.", author: "Washington Irving", work: "Rip Van Winkle", year: 1819 },
+  { text: "It was the truths that made the people grotesques.", author: "Sherwood Anderson", work: "Winesburg, Ohio", year: 1919 }
+];
+
+const drawerRanges = ["A–B","B–C","C–D","D–F","F–H","H–J","J–L","L–M","M–N","N–P","P–R","R–S","S–T","T–W","W–Z"];
+const searchVerbs = ["searching drawer", "checking the ledger", "pulling the card", "riffling the stack", "consulting the index"];
+
+let cardCounter = 41000 + Math.floor(Math.random()*900);
+let lastIndex = -1;
+
+const form = document.getElementById('ask-form');
+const searching = document.getElementById('searching');
+const result = document.getElementById('result');
+const stamp = document.getElementById('stamp');
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+form.addEventListener('submit', function(e){
+  e.preventDefault();
+  runOracle();
+});
+
+document.getElementById('again-btn').addEventListener('click', runOracle);
+
+function runOracle(){
+  result.classList.remove('active');
+  stamp.classList.remove('pop');
+  searching.classList.add('active');
+
+  const question = document.getElementById('question').value.trim();
+  let ticks = 0;
+  const maxTicks = reduceMotion ? 1 : 7;
+
+  const interval = setInterval(() => {
+    const verb = searchVerbs[Math.floor(Math.random()*searchVerbs.length)];
+    const range = drawerRanges[Math.floor(Math.random()*drawerRanges.length)];
+    searching.textContent = `${verb} ${range} …`;
+    ticks++;
+    if (ticks >= maxTicks){
+      clearInterval(interval);
+      reveal(question);
+    }
+  }, reduceMotion ? 0 : 140);
+}
+
+function reveal(question){
+  let idx = Math.floor(Math.random()*QUOTES.length);
+  if (QUOTES.length > 1){
+    while (idx === lastIndex) idx = Math.floor(Math.random()*QUOTES.length);
+  }
+  lastIndex = idx;
+  const q = QUOTES[idx];
+
+  searching.classList.remove('active');
+
+  document.getElementById('quote-text').textContent = q.text;
+  document.getElementById('quote-attr').textContent = `— ${q.author}, ${q.work} (${q.year})`;
+
+  const questionLine = document.getElementById('question-line');
+  if (question){
+    questionLine.style.display = 'block';
+    document.getElementById('question-echo').textContent = question;
+  } else {
+    questionLine.style.display = 'none';
+  }
+
+  cardCounter++;
+  document.getElementById('card-no').textContent = `CARD NO. ${cardCounter}`;
+  document.getElementById('card-date').textContent = `DRAWN ${formatDate()}`;
+
+  const lastInitial = q.author.split(' ').slice(-1)[0].slice(0,3).toUpperCase();
+  document.getElementById('call-number').textContent = `CALL NO. PS ${lastInitial}-${(idx+1)*7}`;
+  document.getElementById('drawer-tab').textContent = drawerRanges[Math.floor(Math.random()*drawerRanges.length)];
+
+  result.classList.add('active');
+  void stamp.offsetWidth;
+  stamp.classList.add('pop');
+}
+
+function formatDate(){
+  const d = new Date();
+  const months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+  return `${months[d.getMonth()]} ${d.getDate()} '${String(d.getFullYear()).slice(2)}`;
+}
+</script>
+</body>
+</html>
